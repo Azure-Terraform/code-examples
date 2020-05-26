@@ -5,7 +5,7 @@ All modules used in this example are version locked.
 We recommend checking for new versions before using this code.
 &nbsp;
 
-**Workflow Breakdown**
+### Workflow Breakdown
 
  1. Obtain subscription data (subscription)
  2. Define tags and names (meta_data)
@@ -14,8 +14,8 @@ We recommend checking for new versions before using this code.
  5. Azure kubernetes deployment (kubernetes)
  6. AKS pod identity install (aad_pod_identity)
  7. Helm install for HPCC
-
 &nbsp;
-**Original Instructions**
+
+### Original Instructions
 This cluster was built using instructions from the HPCC Systems blog:
 https://hpccsystems.com/blog/default-azure-setup
