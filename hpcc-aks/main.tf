@@ -27,7 +27,7 @@ module "subscription" {
   subscription_id = "example"
 }
 
-module "meta_data"{
+module "metadata"{
   source = "github.com/Azure-Terraform/terraform-azurerm-metadata.git?ref=v1.0.0"
   
   market              = "us"
@@ -47,24 +47,24 @@ module "meta_data"{
 module "resource_group" {
   source = "github.com/Azure-Terraform/terraform-azurerm-resource-group.git?ref=v1.0.0"
   
-  location = module.meta_data.location
-  names    = module.meta_data.names
-  tags     = module.meta_data.tags
+  location = module.metadata.location
+  names    = module.metadata.names
+  tags     = module.metadata.tags
 }
 
 module "app_reg" {
   source = "github.com/Azure-Terraform/terraform-azuread-application-registration.git?ref=v1.0.0"
 
-  names    = module.meta_data.names
-  tags     = module.meta_data.tags
+  names    = module.metadata.names
+  tags     = module.metadata.tags
 }
 
 module "kubernetes" {
   source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git?ref=v1.0.0"
   
-  location                 = module.meta_data.location
-  names                    = module.meta_data.names
-  tags                     = module.meta_data.tags
+  location                 = module.metadata.location
+  names                    = module.metadata.names
+  tags                     = module.metadata.tags
   resource_group_name      = module.resource_group.name
   service_principal_id     = module.app_reg.application_id
   service_principal_name   = module.app_reg.service_principal_name

@@ -8,7 +8,7 @@ We recommend checking for new versions before using this code.
 ### Workflow Breakdown
 
  1. Obtain subscription data (subscription)
- 2. Define tags and names (meta_data)
+ 2. Define tags and names (metadata)
  3. Create resource group (resource_group)
  4. Azure AD Application and Service Principal creation (app_reg)
  5. Azure kubernetes deployment (kubernetes)
