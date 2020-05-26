@@ -71,19 +71,6 @@ module "kubernetes" {
   service_principal_secret = module.app_reg.service_principal_secret
 }
 
-
-module "aad_pod_identity" {
-  source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//aad-pod-identity?ref=v1.0.0"
-
-  providers = {
-    helm = helm.aks
-  }
-  
-  resource_group_name    = module.resource_group.name
-  service_principal_name = module.app_reg.service_principal_name
-  aad_pod_identity_version = "1.6.0"
-}
-
 ###############
 # HPCC Deploy #
 ###############
