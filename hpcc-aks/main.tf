@@ -27,8 +27,14 @@ module "subscription" {
   subscription_id = "example"
 }
 
+module "rules" {
+  source = "git@github.com:openrba/python-azure-naming.git?ref=tf"
+}
+
 module "metadata"{
   source = "github.com/Azure-Terraform/terraform-azurerm-metadata.git?ref=v1.0.0"
+
+  naming_rules = module.rules.yaml
   
   market              = "us"
   project             = "example"

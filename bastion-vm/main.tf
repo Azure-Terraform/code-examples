@@ -17,8 +17,14 @@ module "subscription" {
   subscription_id = "example"
 }
 
+module "rules" {
+  source = "git@github.com:openrba/python-azure-naming.git?ref=tf"
+}
+
 module "metadata"{
   source = "github.com/Azure-Terraform/terraform-azurerm-metadata.git?ref=v1.0.0"
+
+  naming_rules = module.rules.yaml
   
   market              = "us"
   project             = "example"
@@ -43,20 +49,21 @@ module "resource_group" {
 }
 
 module "virtual_network" {
-  source = "git@gitlab.ins.risk.regn.net:azure/virtual-network.git?ref=v1.0.0"
+  source = "github.com/Azure-Terraform/terraform-azurerm-virtual-network.git?ref=v1.0.0"
+
+  naming_rules = module.rules.yaml
 
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
   names               = module.metadata.names
   tags                = module.metadata.tags
 
-
   address_space = ["192.168.123.0/24"]
 
   subnets = {
-    "01-iaas-private"     = "192.168.123.0/27"
-    "02-iaas-public"      = "192.168.123.32/27"
-    "03-iaas-outbound"    = "192.168.123.64/27"
+    "01-iaas-private"     = ["192.168.123.0/27"]
+    "02-iaas-public"      = ["192.168.123.32/27"]
+    "03-iaas-outbound"    = ["192.168.123.64/27"]
   }
 }
 
