@@ -67,7 +67,9 @@ module "app_reg" {
 
 module "kubernetes" {
   source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git?ref=v1.0.0"
-  
+
+  kubernetes_version = "1.16.8"
+
   location                 = module.metadata.location
   names                    = module.metadata.names
   tags                     = module.metadata.tags
