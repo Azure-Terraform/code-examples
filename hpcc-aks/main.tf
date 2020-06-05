@@ -66,13 +66,12 @@ module "app_reg" {
 }
 
 module "kubernetes" {
-  source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git?ref=v1.0.0"
-
-  kubernetes_version = "1.16.8"
-
+  source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git?ref=v1.0.1"
+  
   location                 = module.metadata.location
   names                    = module.metadata.names
   tags                     = module.metadata.tags
+  kubernetes_version       = "1.18.2"
   resource_group_name      = module.resource_group.name
   service_principal_id     = module.app_reg.application_id
   service_principal_name   = module.app_reg.service_principal_name
@@ -94,4 +93,15 @@ resource "helm_release" "hpcc" {
   values = [
     "${file("values.yaml")}"
   ]
+}
+
+##########
+# Output #
+##########
+output "resource_group_name" {
+  value = module.resource_group.name
+}
+
+output "aks_cluster_name" {
+  value = module.kubernetes.name
 }
