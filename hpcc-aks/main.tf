@@ -40,7 +40,6 @@ module "metadata"{
   project             = "example"
   location            = "useast2"
   sre_team            = "example"
-  cost_center         = "example"
   environment         = "sandbox"
   product_name        = "example"
   business_unit       = "example"
