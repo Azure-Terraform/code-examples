@@ -2,18 +2,6 @@
 # Local Variables #
 ###################
 
-variable "service_principal_name" {
-  type = string
-}
-
-variable "service_principal_id" {
-  type = string
-}
-
-variable "service_principal_secret" {
-  type = string
-}
-
 variable "subscription_id" {
   type = string
 }
@@ -126,10 +114,6 @@ module "kubernetes" {
   tags                     = module.metadata.tags
   resource_group_name      = module.resource_group.name
 
-  service_principal_id     = var.service_principal_id
-  service_principal_secret = var.service_principal_secret
-  service_principal_name   = var.service_principal_name
-
   default_node_pool_name                = "default"
   default_node_pool_vm_size             = "Standard_D2s_v3"
   default_node_pool_enable_auto_scaling = true
@@ -138,9 +122,6 @@ module "kubernetes" {
   default_node_pool_availability_zones  = [1,2,3]
 
   enable_kube_dashboard = true
-
-  use_service_principal = false
-
 }
 
 resource "azurerm_kubernetes_cluster_node_pool" "b2s" {
