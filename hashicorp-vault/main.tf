@@ -18,19 +18,19 @@ variable "subscription_id" {
   type = string
 }
 
-variable "iog_resource_group_name" {
+variable "parent_domain_resource_group_name" {
   type = string
 }
 
-variable "iog_subscription_id" {
+variable "parent_domain_subscription_id" {
   type = string
 }
 
-variable "sre_subscription_id" {
+variable "parent_domain" {
   type = string
 }
 
-variable "domain_prefix" {
+variable "child_domain_prefix" {
   type = string
 }
 
@@ -117,7 +117,7 @@ module "resource_group" {
 }
 
 module "kubernetes" {
-  source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git?ref=v1.1.0"
+  source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git?ref=managed_identity"
 
   kubernetes_version = "1.16.8"
   
@@ -125,6 +125,7 @@ module "kubernetes" {
   names                    = module.metadata.names
   tags                     = module.metadata.tags
   resource_group_name      = module.resource_group.name
+
   service_principal_id     = var.service_principal_id
   service_principal_secret = var.service_principal_secret
   service_principal_name   = var.service_principal_name
@@ -137,6 +138,8 @@ module "kubernetes" {
   default_node_pool_availability_zones  = [1,2,3]
 
   enable_kube_dashboard = true
+
+  use_service_principal = false
 
 }
 
@@ -165,27 +168,29 @@ resource "kubernetes_storage_class" "azurefile_grs" {
    mount_options = ["dir_mode=0777", "file_mode=0777", "uid=0", "gid=0", "mfsymlinks", "cache=strict"]
 }
 
-module "aad-pod-identity" {
-  source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//aad-pod-identity?ref=v1.1.0"
+module "aad_pod_identity" {
+  source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//aad-pod-identity?ref=managed_identity"
   providers = { helm = helm.aks }
 
-  resource_group_name    = module.resource_group.name
-  service_principal_name = var.service_principal_name
+  helm_chart_version = "2.0.0"
 
-  aad_pod_identity_version = "1.6.0"
+  node_resource_group_name = module.kubernetes.node_resource_group
+  additional_scopes        = [module.resource_group.id]
+
+  principal_id = module.kubernetes.principal_id
 }
 
 module "dns" {
-  source = "github.com/Azure-Terraform/terraform-azurerm-dns-zone.git?ref=v1.0.0"
+  source = "github.com/Azure-Terraform/terraform-azurerm-dns-zone.git?ref=v1.1.0"
 
-  domain_prefix = var.domain_prefix
+  child_domain_resource_group_name = module.resource_group.name
+  child_domain_subscription_id     = module.subscription.output.subscription_id
+  child_domain_prefix              = var.child_domain_prefix
 
-  iog_resource_group_name = var.iog_resource_group_name
-  iog_subscription_id     = var.iog_subscription_id
-  sre_resource_group_name = module.resource_group.name
-  sre_subscription_id     = var.sre_subscription_id
+  parent_domain_resource_group_name = var.parent_domain_resource_group_name
+  parent_domain_subscription_id     = var.parent_domain_subscription_id
+  parent_domain                     = var.parent_domain
 
-  names = module.metadata.names
   tags  = module.metadata.tags
 }
 
@@ -209,7 +214,7 @@ resource "azurerm_dns_a_record" "vault" {
 }
 
 module "cert_manager" {
-  source    = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//cert-manager?ref=v1.1.0"
+  source    = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//cert-manager?ref=managed_identity"
   providers = { helm = helm.aks }
 
   subscription_id = module.subscription.output.subscription_id
@@ -222,7 +227,7 @@ module "cert_manager" {
 
   cert_manager_version = "v0.15.1"
 
-  domains = [module.dns.name]
+  domains = {"${module.dns.name}" = module.dns.id}
 
   issuers = {
     staging = {
@@ -243,7 +248,7 @@ module "cert_manager" {
 }
 
 module "certificate" {
-  source    = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//cert-manager/certificate?ref=v1.1.0"
+  source    = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//cert-manager/certificate?ref=managed_identity"
   providers = { helm = helm.aks }
 
   certificate_name = "vault"
@@ -255,7 +260,7 @@ module "certificate" {
 }
 
 module "nginx_ingress" {
-  source    = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//nginx-ingress?ref=v1.1.0"
+  source    = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//nginx-ingress?ref=managed_identity"
   providers = { helm = helm.aks }
 
   helm_chart_version = "1.40.1"
