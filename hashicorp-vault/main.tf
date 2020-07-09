@@ -42,7 +42,7 @@ variable "certificate_type" {
 #############
 
 provider "azurerm" {
-  version = "=2.15.0"
+  version = "=2.17.0"
   subscription_id = var.subscription_id
   features {}
 }
@@ -55,14 +55,6 @@ provider "helm" {
     client_key             = base64decode(module.kubernetes.client_key)
     cluster_ca_certificate = base64decode(module.kubernetes.cluster_ca_certificate)
   }
-}
-
-provider "kubernetes" {
-  load_config_file       = "false"
-  host                   = module.kubernetes.host
-  client_certificate     = base64decode(module.kubernetes.client_certificate)
-  client_key             = base64decode(module.kubernetes.client_key)
-  cluster_ca_certificate = base64decode(module.kubernetes.cluster_ca_certificate)
 }
 
 #####################
@@ -105,7 +97,7 @@ module "resource_group" {
 }
 
 module "kubernetes" {
-  source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git?ref=managed_identity"
+  source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git?ref=v1.2.0"
 
   kubernetes_version = "1.16.8"
   
@@ -137,20 +129,9 @@ resource "azurerm_kubernetes_cluster_node_pool" "b2s" {
   tags = module.metadata.tags
 }
 
-resource "kubernetes_storage_class" "azurefile_grs" {
-   metadata {
-     name = "azurefile-grs"
-   }
-   storage_provisioner = "kubernetes.io/azure-file"
-   reclaim_policy      = "Delete"
-   parameters = {
-     skuName = "Standard_GRS"
-   }
-   mount_options = ["dir_mode=0777", "file_mode=0777", "uid=0", "gid=0", "mfsymlinks", "cache=strict"]
-}
-
 module "aad_pod_identity" {
-  source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//aad-pod-identity?ref=managed_identity"
+  source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//aad-pod-identity?ref=v1.2.0"
+
   providers = { helm = helm.aks }
 
   helm_chart_version = "2.0.0"
@@ -195,7 +176,7 @@ resource "azurerm_dns_a_record" "vault" {
 }
 
 module "cert_manager" {
-  source    = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//cert-manager?ref=managed_identity"
+  source    = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//cert-manager?ref=v1.2.0"
   providers = { helm = helm.aks }
 
   subscription_id = module.subscription.output.subscription_id
@@ -229,7 +210,8 @@ module "cert_manager" {
 }
 
 module "certificate" {
-  source    = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//cert-manager/certificate?ref=managed_identity"
+  source    = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//cert-manager/certificate?ref=v1.2.0"
+
   providers = { helm = helm.aks }
 
   certificate_name = "vault"
@@ -241,8 +223,9 @@ module "certificate" {
 }
 
 module "nginx_ingress" {
-  source    = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//nginx-ingress?ref=managed_identity"
-  providers = { helm = helm.aks }
+  source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//nginx-ingress?ref=v1.2.0"
+
+  providers  = { helm = helm.aks }
 
   helm_chart_version = "1.40.1"
   helm_release_name = "nginx-ingress-vault"
@@ -255,7 +238,8 @@ module "nginx_ingress" {
 
 module "vault" {
   source = "github.com/Azure-Terraform/terraform-azurerm-hashicorp-vault.git?ref=ingress"
-  providers = { helm = helm.aks }
+
+  providers  = { helm = helm.aks }
 
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
@@ -269,7 +253,7 @@ module "vault" {
   vault_enable_raft_backend    = true
   vault_version                = "1.4.2"
   vault_agent_injector_version = "0.3.0"
-  vault_data_storage_class     = kubernetes_storage_class.azurefile_grs.metadata[0].name
+  vault_data_storage_class     = "azurefile"
 
   vault_ingress_enabled         = true
   vault_ingress_hostname        = trim(azurerm_dns_a_record.vault.fqdn, ".")
