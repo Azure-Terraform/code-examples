@@ -76,13 +76,14 @@ module "metadata"{
   naming_rules = module.rules.yaml
   
   market              = "us"
-  project             = "https://gitlab.ins.risk.regn.net/example/"
+  project             = "example"
   location            = "useast2"
-  sre_team            = "iog-core-services"
+  sre_team            = "example"
+  cost_center         = "example"
   environment         = "sandbox"
-  product_name        = "lzdemovault"
-  business_unit       = "iog"
-  product_group       = "core"
+  product_name        = "example"
+  business_unit       = "example"
+  product_group       = "example"
   subscription_id     = module.subscription.output.subscription_id
   subscription_type   = "nonprod"
   resource_group_type = "app"
