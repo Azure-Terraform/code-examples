@@ -1,10 +1,14 @@
+variable "subscription_id" {
+  default = "example"
+}
+
 #############
 # Providers #
 #############
 
 provider "azurerm" {
   version = ">=2.0.0"
-  subscription_id = "example"
+  subscription_id = var.subscription_id
   features {}
 }
 
@@ -24,7 +28,7 @@ provider "helm" {
 
 module "subscription" {
   source = "github.com/Azure-Terraform/terraform-azurerm-subscription-data.git?ref=v1.0.0"
-  subscription_id = "example"
+  subscription_id = var.subscription_id
 }
 
 module "rules" {
@@ -57,24 +61,24 @@ module "resource_group" {
   tags     = module.metadata.tags
 }
 
-module "app_reg" {
-  source = "github.com/Azure-Terraform/terraform-azuread-application-registration.git?ref=v1.0.0"
-
-  names    = module.metadata.names
-  tags     = module.metadata.tags
-}
-
 module "kubernetes" {
-  source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git?ref=v1.0.1"
+  source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git?ref=v1.2.0"
+
+  kubernetes_version = "1.18.2"
   
   location                 = module.metadata.location
   names                    = module.metadata.names
   tags                     = module.metadata.tags
-  kubernetes_version       = "1.18.2"
   resource_group_name      = module.resource_group.name
-  service_principal_id     = module.app_reg.application_id
-  service_principal_name   = module.app_reg.service_principal_name
-  service_principal_secret = module.app_reg.service_principal_secret
+
+  default_node_pool_name                = "default"
+  default_node_pool_vm_size             = "Standard_D2s_v3"
+  default_node_pool_enable_auto_scaling = true
+  default_node_pool_node_min_count      = 1
+  default_node_pool_node_max_count      = 5
+  default_node_pool_availability_zones  = [1,2,3]
+
+  enable_kube_dashboard = true
 }
 
 ###############
@@ -88,19 +92,46 @@ resource "helm_release" "hpcc" {
   namespace  = "default"
   repository = "https://hpcc-systems.github.io/helm-chart/"
   chart      = "hpcc"
+  version    = "7.10.2"
 
-  values = [
-    "${file("values.yaml")}"
-  ]
+  set {
+    name  = "global.image.version"
+    value = "latest"
+  }
+
+  set {
+    name  = "storage.dllStorage.storageClass"
+    value = "azurefile"
+  }
+
+  set {
+    name  = "storage.daliStorage.storageClass"
+    value = "azurefile"
+  }
+
+  set {
+    name  = "storage.dataStorage.storageClass"
+    value = "azurefile"
+  }
+
 }
 
 ##########
 # Output #
 ##########
+
 output "resource_group_name" {
   value = module.resource_group.name
 }
 
 output "aks_cluster_name" {
   value = module.kubernetes.name
+}
+
+output "aks_login" {
+  value = "az aks get-credentials --name ${module.kubernetes.name} --resource-group ${module.resource_group.name}"
+}
+
+output "aks_browse"{
+  value = "az aks browse --name ${module.kubernetes.name} --resource-group ${module.resource_group.name}"
 }
