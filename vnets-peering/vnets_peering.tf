@@ -14,7 +14,7 @@ module "rules" {
 }
 
 # Metadata
-module "metadata_vnet1" {
+module "metadata_vnet_alpha" {
   source = "git@github.com:Azure-Terraform/terraform-azurerm-metadata.git?ref=v1.0.0"
 
   subscription_id     = module.subscription.output.subscription_id
@@ -24,8 +24,8 @@ module "metadata_vnet1" {
   environment         = "sandbox"
   location            = "useast2"
   market              = "us"
-  product_name        = "vnet1"
-  product_group       = "vnet1"
+  product_name        = "vnetalpha"
+  product_group       = "vnetalpha"
   project             = "https://gitlab.ins.risk.regn.net/example/"
   sre_team            = "iog-core-services"
   subscription_type   = "dev"
@@ -40,19 +40,19 @@ module "metadata_vnet1" {
 module "resource_group" {
   source = "git@github.com:Azure-Terraform/terraform-azurerm-resource-group.git?ref=v1.0.0"
 
-  location = module.metadata_vnet1.location
-  tags     = module.metadata_vnet1.tags
-  names     = module.metadata_vnet1.names
+  location = module.metadata_vnet_alpha.location
+  tags     = module.metadata_vnet_alpha.tags
+  names     = module.metadata_vnet_alpha.names
 }
 
 # Vnet1
-module "vnet1" {
+module "vnet_alpha" {
   source              = "git@github.com:Azure-Terraform/terraform-azurerm-virtual-network.git"
   naming_rules        = module.rules.yaml
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
-  names               = module.metadata_vnet1.names
-  tags                = module.metadata_vnet1.tags
+  names               = module.metadata_vnet_alpha.names
+  tags                = module.metadata_vnet_alpha.tags
   address_space       = ["192.168.123.0/24"]
   subnets = {
     "01-iaas-private"     = ["192.168.123.0/27"]
@@ -63,7 +63,7 @@ module "vnet1" {
 
 # Vnet-2
 # Metadata
-module "metadata_vnet2" {
+module "metadata_vnet_bravo" {
   source = "git@github.com:Azure-Terraform/terraform-azurerm-metadata.git?ref=v1.0.0"
 
   subscription_id     = module.subscription.output.subscription_id
@@ -73,8 +73,8 @@ module "metadata_vnet2" {
   environment         = "sandbox"
   location            = "useast2"
   market              = "us"
-  product_name        = "vnet2"
-  product_group       = "vnet2"
+  product_name        = "vnetbravo"
+  product_group       = "vnetbravo"
   project             = "https://gitlab.ins.risk.regn.net/example/"
   sre_team            = "iog-core-services"
   subscription_type   = "dev"
@@ -85,13 +85,13 @@ module "metadata_vnet2" {
   }
 }
 
-module "vnet2" {
+module "vnetbravo" {
   source              = "git@github.com:Azure-Terraform/terraform-azurerm-virtual-network.git"
   naming_rules        = module.rules.yaml
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
-  names               = module.metadata_vnet2.names
-  tags                = module.metadata_vnet2.tags
+  names               = module.metadata_vnet_bravo.names
+  tags                = module.metadata_vnet_bravo.tags
   address_space = ["192.178.123.0/24"]
   subnets = {
     "01-iaas-private"     = ["192.178.123.0/27"]
@@ -106,67 +106,55 @@ module "peering" {
   subscription_id     = module.subscription.output.subscription_id
   source_peer         = {
       resource_group_name  = module.resource_group.name
-      virtual_network_name = module.vnet1.vnet.name
+      virtual_network_name = module.vnet_alpha.vnet.name
   }
   destination_peer    = {
       resource_group_name  = module.resource_group.name
-      virtual_network_name = module.vnet2.vnet.name
+      virtual_network_name = module.vnetbravo.vnet.name
   }
 }
 
 # Pub IP for VM-1
 resource "azurerm_public_ip" "bastion" {
-  name                = "${module.metadata_vnet1.names.product_name}-bastion-public"
+  name                = "${module.metadata_vnet_alpha.names.product_name}-bastion-public"
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
 
   allocation_method   = "Static"
   sku                 = "Basic"
 
-  tags                = module.metadata_vnet1.tags
+  tags                = module.metadata_vnet_alpha.tags
 }
-
-# # Pub IP for VM-2
-# resource "azurerm_public_ip" "bastion2" {
-#   name                = "${module.metadata_vnet2.names.product_name}-bastion2-public"
-#   resource_group_name = module.resource_group.name
-#   location            = module.resource_group.location
-
-#   allocation_method   = "Static"
-#   sku                 = "Basic"
-
-#   tags                = module.metadata_vnet2.tags
-# }
 
 # Nic for VM-1
 resource "azurerm_network_interface" "bastion" {
-  name                = "${module.metadata_vnet1.names.product_name}-bastion"
+  name                = "${module.metadata_vnet_alpha.names.product_name}-bastion"
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
 
   ip_configuration {
     name                          = "bastion"
-    subnet_id                     = module.vnet1.subnet["iaas-private-subnet"].id
+    subnet_id                     = module.vnet_alpha.subnet["iaas-private-subnet"].id
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = azurerm_public_ip.bastion.id
   }
 
-  tags                = module.metadata_vnet1.tags
+  tags                = module.metadata_vnet_alpha.tags
 }
 
 # Nic for VM-2
 resource "azurerm_network_interface" "internal" {
-  name                = "${module.metadata_vnet2.names.product_name}-internal"
+  name                = "${module.metadata_vnet_bravo.names.product_name}-internal"
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
 
   ip_configuration {
     name                          = "internal"
-    subnet_id                     = module.vnet2.subnet["iaas-private-subnet"].id
+    subnet_id                     = module.vnetbravo.subnet["iaas-private-subnet"].id
     private_ip_address_allocation = "Dynamic"
   }
 
-  tags                = module.metadata_vnet2.tags
+  tags                = module.metadata_vnet_bravo.tags
 }
 
 # NetSec Rule for VM-1
@@ -181,7 +169,7 @@ resource "azurerm_network_security_rule" "bastion_in" {
   source_address_prefix       = "*"
   destination_address_prefix  = azurerm_network_interface.bastion.private_ip_address
   resource_group_name         = module.resource_group.name
-  network_security_group_name = module.vnet1.subnet_nsg_names["iaas-private-subnet"]
+  network_security_group_name = module.vnet_alpha.subnet_nsg_names["iaas-private-subnet"]
 }
 
 # NetSec rule to allow for outbound
@@ -196,7 +184,7 @@ resource "azurerm_network_security_rule" "bastion_out" {
   source_address_prefix       = azurerm_network_interface.bastion.private_ip_address
   destination_address_prefix  = "*"
   resource_group_name         = module.resource_group.name
-  network_security_group_name = module.vnet1.subnet_nsg_names["iaas-private-subnet"]
+  network_security_group_name = module.vnet_alpha.subnet_nsg_names["iaas-private-subnet"]
 }
 
 # NetSec Rule for VM-2
@@ -211,12 +199,12 @@ resource "azurerm_network_security_rule" "internal_inbound" {
   source_address_prefix       = "*"
   destination_address_prefix  = azurerm_network_interface.internal.private_ip_address
   resource_group_name         = module.resource_group.name
-  network_security_group_name = module.vnet2.subnet_nsg_names["iaas-private-subnet"]
+  network_security_group_name = module.vnetbravo.subnet_nsg_names["iaas-private-subnet"]
 }
 
 # Create VM-1
 resource "azurerm_linux_virtual_machine" "bastion" {
-  name                = "${module.metadata_vnet1.names.product_name}-bastion"
+  name                = "${module.metadata_vnet_alpha.names.product_name}-bastion"
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
   size                = "Standard_B2s"
@@ -246,7 +234,7 @@ resource "azurerm_linux_virtual_machine" "bastion" {
 
 # Create VM-2
 resource "azurerm_linux_virtual_machine" "internal" {
-  name                = "${module.metadata_vnet2.names.product_name}-internal"
+  name                = "${module.metadata_vnet_bravo.names.product_name}-internal"
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
   size                = "Standard_B2s"
