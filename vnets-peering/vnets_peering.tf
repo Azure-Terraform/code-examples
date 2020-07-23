@@ -14,7 +14,7 @@ module "rules" {
 }
 
 # Metadata
-module "metadata" {
+module "metadata_vnet1" {
   source = "git@github.com:Azure-Terraform/terraform-azurerm-metadata.git?ref=v1.0.0"
 
   subscription_id     = module.subscription.output.subscription_id
@@ -40,9 +40,9 @@ module "metadata" {
 module "resource_group" {
   source = "git@github.com:Azure-Terraform/terraform-azurerm-resource-group.git?ref=v1.0.0"
 
-  location = module.metadata.location
-  tags     = module.metadata.tags
-  names     = module.metadata.names
+  location = module.metadata_vnet1.location
+  tags     = module.metadata_vnet1.tags
+  names     = module.metadata_vnet1.names
 }
 
 # Vnet1
@@ -51,8 +51,8 @@ module "vnet1" {
   naming_rules        = module.rules.yaml
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
-  names               = module.metadata.names
-  tags                = module.metadata.tags
+  names               = module.metadata_vnet1.names
+  tags                = module.metadata_vnet1.tags
   address_space       = ["192.168.123.0/24"]
   subnets = {
     "01-iaas-private"     = ["192.168.123.0/27"]
@@ -116,31 +116,31 @@ module "peering" {
 
 # Pub IP for VM-1
 resource "azurerm_public_ip" "bastion" {
-  name                = "${module.metadata.names.product_name}-bastion-public"
+  name                = "${module.metadata_vnet1.names.product_name}-bastion-public"
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
 
   allocation_method   = "Static"
   sku                 = "Basic"
 
-  tags                = module.metadata.tags
+  tags                = module.metadata_vnet1.tags
 }
 
-# Pub IP for VM-2
-resource "azurerm_public_ip" "bastion2" {
-  name                = "${module.metadata_vnet2.names.product_name}-bastion2-public"
-  resource_group_name = module.resource_group.name
-  location            = module.resource_group.location
+# # Pub IP for VM-2
+# resource "azurerm_public_ip" "bastion2" {
+#   name                = "${module.metadata_vnet2.names.product_name}-bastion2-public"
+#   resource_group_name = module.resource_group.name
+#   location            = module.resource_group.location
 
-  allocation_method   = "Static"
-  sku                 = "Basic"
+#   allocation_method   = "Static"
+#   sku                 = "Basic"
 
-  tags                = module.metadata_vnet2.tags
-}
+#   tags                = module.metadata_vnet2.tags
+# }
 
 # Nic for VM-1
 resource "azurerm_network_interface" "bastion" {
-  name                = "${module.metadata.names.product_name}-bastion"
+  name                = "${module.metadata_vnet1.names.product_name}-bastion"
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
 
@@ -151,20 +151,19 @@ resource "azurerm_network_interface" "bastion" {
     public_ip_address_id          = azurerm_public_ip.bastion.id
   }
 
-  tags                = module.metadata.tags
+  tags                = module.metadata_vnet1.tags
 }
 
 # Nic for VM-2
-resource "azurerm_network_interface" "bastion2" {
-  name                = "${module.metadata_vnet2.names.product_name}-bastion2"
+resource "azurerm_network_interface" "internal" {
+  name                = "${module.metadata_vnet2.names.product_name}-internal"
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
 
   ip_configuration {
-    name                          = "bastion2"
+    name                          = "internal"
     subnet_id                     = module.vnet2.subnet["iaas-private-subnet"].id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.bastion2.id
   }
 
   tags                = module.metadata_vnet2.tags
@@ -201,8 +200,8 @@ resource "azurerm_network_security_rule" "bastion_out" {
 }
 
 # NetSec Rule for VM-2
-resource "azurerm_network_security_rule" "bastion2_in" {
-  name                        = "bastion2-in"
+resource "azurerm_network_security_rule" "internal_inbound" {
+  name                        = "internal-inbound"
   priority                    = 100
   direction                   = "Inbound"
   access                      = "Allow"
@@ -210,14 +209,14 @@ resource "azurerm_network_security_rule" "bastion2_in" {
   source_port_range           = "*"
   destination_port_range      = "22"
   source_address_prefix       = "*"
-  destination_address_prefix  = azurerm_network_interface.bastion2.private_ip_address
+  destination_address_prefix  = azurerm_network_interface.internal.private_ip_address
   resource_group_name         = module.resource_group.name
   network_security_group_name = module.vnet2.subnet_nsg_names["iaas-private-subnet"]
 }
 
 # Create VM-1
 resource "azurerm_linux_virtual_machine" "bastion" {
-  name                = "${module.metadata.names.product_name}-bastion"
+  name                = "${module.metadata_vnet1.names.product_name}-bastion"
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
   size                = "Standard_B2s"
@@ -246,15 +245,15 @@ resource "azurerm_linux_virtual_machine" "bastion" {
 }
 
 # Create VM-2
-resource "azurerm_linux_virtual_machine" "bastion2" {
-  name                = "${module.metadata_vnet2.names.product_name}-bastion2"
+resource "azurerm_linux_virtual_machine" "internal" {
+  name                = "${module.metadata_vnet2.names.product_name}-internal"
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
   size                = "Standard_B2s"
   admin_username      = "adminuser"
 
   network_interface_ids = [
-    azurerm_network_interface.bastion2.id,
+    azurerm_network_interface.internal.id,
   ]
 
   admin_ssh_key {
@@ -279,6 +278,6 @@ output "ssh_command" {
   value = "ssh adminuser@${azurerm_public_ip.bastion.ip_address}"
 }
 
-output "ssh_command2" {
-  value = "ssh adminuser@${azurerm_public_ip.bastion2.ip_address}"
+output "internal_host_ip" {
+  value = "Internal host IP address: ${azurerm_linux_virtual_machine.internal.private_ip_address}"
 }
