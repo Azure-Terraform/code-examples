@@ -79,7 +79,6 @@ module "metadata"{
   project             = "example"
   location            = "useast2"
   sre_team            = "example"
-  cost_center         = "example"
   environment         = "sandbox"
   product_name        = "example"
   business_unit       = "example"
@@ -100,7 +99,7 @@ module "resource_group" {
 module "kubernetes" {
   source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git?ref=v1.2.0"
 
-  kubernetes_version = "1.16.8"
+  kubernetes_version = "1.18.6"
   
   location                 = module.metadata.location
   names                    = module.metadata.names
