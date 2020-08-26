@@ -42,7 +42,7 @@ variable "certificate_type" {
 #############
 
 provider "azurerm" {
-  version = "=2.17.0"
+  version = ">=2.24.0"
   subscription_id = var.subscription_id
   features {}
 }
@@ -71,15 +71,14 @@ module "rules" {
 }
 
 module "metadata"{
-  source = "github.com/Azure-Terraform/terraform-azurerm-metadata.git?ref=v1.0.0"
+  source = "github.com/Azure-Terraform/terraform-azurerm-metadata.git?ref=v1.1.0"
 
   naming_rules = module.rules.yaml
   
   market              = "us"
-  project             = "example"
+  project             = "https://gitlab.ins.risk.regn.net/example/"
   location            = "useast2"
   sre_team            = "example"
-  cost_center         = "example"
   environment         = "sandbox"
   product_name        = "example"
   business_unit       = "example"
@@ -100,7 +99,7 @@ module "resource_group" {
 module "kubernetes" {
   source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git?ref=v1.2.0"
 
-  kubernetes_version = "1.16.8"
+  kubernetes_version = "1.17.7"
   
   location                 = module.metadata.location
   names                    = module.metadata.names
@@ -132,6 +131,8 @@ resource "azurerm_kubernetes_cluster_node_pool" "b2s" {
 
 module "aad_pod_identity" {
   source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//aad-pod-identity?ref=v1.2.0"
+
+  depends_on = [ module.kubernetes ]
 
   providers = { helm = helm.aks }
 
@@ -178,6 +179,9 @@ resource "azurerm_dns_a_record" "vault" {
 
 module "cert_manager" {
   source    = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//cert-manager?ref=v1.2.0"
+
+  depends_on = [module.resource_group, module.aad_pod_identity ]
+
   providers = { helm = helm.aks }
 
   subscription_id = module.subscription.output.subscription_id
@@ -213,6 +217,8 @@ module "cert_manager" {
 module "certificate" {
   source    = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//cert-manager/certificate?ref=v1.2.0"
 
+  depends_on = [ module.cert_manager ]
+
   providers = { helm = helm.aks }
 
   certificate_name = "vault"
@@ -239,6 +245,8 @@ module "nginx_ingress" {
 
 module "vault" {
   source = "github.com/Azure-Terraform/terraform-azurerm-hashicorp-vault.git?ref=ingress"
+
+  depends_on = [module.resource_group, module.cert_manager ]
 
   providers  = { helm = helm.aks }
 
