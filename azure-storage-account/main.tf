@@ -63,3 +63,11 @@ module "create-storage-account" {
     tags                     = module.metadata.tags
     retention_days           = var.retention_days
 }
+
+output "sa_name" {
+  value = module.create-storage-account.storage_account_name
+}
+
+output "sa_id" {
+  value = module.create-storage-account.storage_account_id
+}
