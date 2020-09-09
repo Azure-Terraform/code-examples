@@ -8,11 +8,6 @@ variable "location" {
     description = "Azure Geo Location"
 }
 
-variable "storage_account" {
-    type        = string
-    description = "Azure storage account"
-}
-
 variable "account_kind" {
     type        = string
     description = "Kind of the storage account - i.e. BlobStorage, BlockBlobStorage, FileStorage, Storage and StorageV2"

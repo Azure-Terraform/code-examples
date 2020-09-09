@@ -46,14 +46,13 @@ module "resource_group" {
 }
 
 module "create-storage-account" {
+    depends_on = [module.resource_group]
     source = "git@github.com:openrba/terraform-azurerm-storage-account.git?ref=dev"
     providers = {
         azurerm = azurerm.azurerm-provider
     }
-    # Pass all the variables the module required
-    resource_group           = module.resource_group.name
+    names                    = module.metadata.names
     location                 = module.metadata.location
-    storage_account          = var.storage_account
     account_kind             = var.account_kind
     account_tier             = var.account_tier
     replication_type         = var.replication_type
