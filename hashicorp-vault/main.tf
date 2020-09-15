@@ -42,7 +42,7 @@ variable "certificate_type" {
 #############
 
 provider "azurerm" {
-  version = ">=2.24.0"
+  version = "=2.26.0"
   subscription_id = var.subscription_id
   features {}
 }
@@ -76,7 +76,7 @@ module "metadata"{
   naming_rules = module.rules.yaml
   
   market              = "us"
-  project             = "https://gitlab.ins.risk.regn.net/example/"
+  project             = "example"
   location            = "useast2"
   sre_team            = "iog-core-services"
   environment         = "sandbox"
@@ -178,8 +178,7 @@ resource "azurerm_dns_a_record" "vault" {
 }
 
 module "cert_manager" {
-  #source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes-cert-manager.git?ref=v1.0.0"
-  source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes-cert-manager.git"
+  source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes-cert-manager.git?ref=v1.0.2"
 
   depends_on = [module.resource_group, module.aad_pod_identity ]
 
@@ -216,8 +215,7 @@ module "cert_manager" {
 }
 
 module "certificate" {
-  #source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes-cert-manager.git//certificate?ref=v1.0.0"
-  source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes-cert-manager.git//certificate"
+  source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes-cert-manager.git//certificate?ref=v1.0.2"
 
   depends_on = [ module.cert_manager ]
 
