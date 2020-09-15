@@ -78,11 +78,11 @@ module "metadata"{
   market              = "us"
   project             = "https://gitlab.ins.risk.regn.net/example/"
   location            = "useast2"
-  sre_team            = "example"
+  sre_team            = "iog-core-services"
   environment         = "sandbox"
-  product_name        = "example"
-  business_unit       = "example"
-  product_group       = "example"
+  product_name        = "lzdemovault"
+  business_unit       = "iog"
+  product_group       = "core"
   subscription_id     = module.subscription.output.subscription_id
   subscription_type   = "nonprod"
   resource_group_type = "app"
@@ -97,7 +97,7 @@ module "resource_group" {
 }
 
 module "kubernetes" {
-  source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git?ref=v1.2.0"
+  source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git?ref=v1.3.0"
 
   kubernetes_version = "1.17.7"
   
@@ -107,7 +107,7 @@ module "kubernetes" {
   resource_group_name      = module.resource_group.name
 
   default_node_pool_name                = "default"
-  default_node_pool_vm_size             = "Standard_D2s_v3"
+  default_node_pool_vm_size             = "Standard_D2as_v4"
   default_node_pool_enable_auto_scaling = true
   default_node_pool_node_min_count      = 1
   default_node_pool_node_max_count      = 5
@@ -130,7 +130,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "b2s" {
 }
 
 module "aad_pod_identity" {
-  source = "github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//aad-pod-identity?ref=v1.2.0"
+  source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes-aad-pod-identity.git?ref=v1.1.0"
 
   depends_on = [ module.kubernetes ]
 
@@ -138,10 +138,10 @@ module "aad_pod_identity" {
 
   helm_chart_version = "2.0.0"
 
-  node_resource_group_name = module.kubernetes.node_resource_group
+  aks_node_resource_group = module.kubernetes.node_resource_group
   additional_scopes        = [module.resource_group.id]
 
-  principal_id = module.kubernetes.principal_id
+  aks_principal_id = module.kubernetes.principal_id
 }
 
 module "dns" {
@@ -178,7 +178,8 @@ resource "azurerm_dns_a_record" "vault" {
 }
 
 module "cert_manager" {
-  source    = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//cert-manager?ref=v1.2.0"
+  #source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes-cert-manager.git?ref=v1.0.0"
+  source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes-cert-manager.git"
 
   depends_on = [module.resource_group, module.aad_pod_identity ]
 
@@ -215,7 +216,8 @@ module "cert_manager" {
 }
 
 module "certificate" {
-  source    = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//cert-manager/certificate?ref=v1.2.0"
+  #source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes-cert-manager.git//certificate?ref=v1.0.0"
+  source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes-cert-manager.git//certificate"
 
   depends_on = [ module.cert_manager ]
 
@@ -230,7 +232,7 @@ module "certificate" {
 }
 
 module "nginx_ingress" {
-  source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes.git//nginx-ingress?ref=v1.2.0"
+  source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes-nginx-ingress.git?ref=v1.0.0"
 
   providers  = { helm = helm.aks }
 
@@ -244,7 +246,7 @@ module "nginx_ingress" {
 }
 
 module "vault" {
-  source = "github.com/Azure-Terraform/terraform-azurerm-hashicorp-vault.git?ref=ingress"
+  source = "github.com/Azure-Terraform/terraform-azurerm-hashicorp-vault.git?ref=v1.1.0"
 
   depends_on = [module.resource_group, module.cert_manager ]
 
