@@ -78,11 +78,11 @@ module "metadata"{
   market              = "us"
   project             = "example"
   location            = "useast2"
-  sre_team            = "example"
+  sre_team            = "iog-core-services"
   environment         = "sandbox"
-  product_name        = "example"
-  business_unit       = "example"
-  product_group       = "example"
+  product_name        = "lzdemovault"
+  business_unit       = "iog"
+  product_group       = "core"
   subscription_id     = module.subscription.output.subscription_id
   subscription_type   = "nonprod"
   resource_group_type = "app"
@@ -215,7 +215,7 @@ module "cert_manager" {
 }
 
 module "certificate" {
-  source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes-cert-manager.git//certificate?ref=v1.0.1"
+  source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes-cert-manager.git//certificate?ref=v1.0.2"
 
   depends_on = [ module.cert_manager ]
 
