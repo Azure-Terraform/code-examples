@@ -230,11 +230,11 @@ module "certificate" {
 }
 
 module "nginx_ingress" {
-  source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes-nginx-ingress.git?ref=v1.0.0"
+  source = "git::https://github.com/Azure-Terraform/terraform-azurerm-kubernetes-nginx-ingress.git?ref=v1.2.0"
 
   providers  = { helm = helm.aks }
 
-  helm_chart_version = "1.40.1"
+  helm_chart_version = "3.4.1"
   helm_release_name = "nginx-ingress-vault"
 
   kubernetes_namespace        = "hashicorp-vault"
